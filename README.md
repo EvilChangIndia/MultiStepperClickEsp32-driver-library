@@ -1,190 +1,174 @@
-MultiStepperClickEsp32-driver-library
+# MultiStepperClickEsp32-driver-library
+
 A lightweight Arduino/ESP32 library to control up to two stepper motors via the Multi Stepper Click (TB62269) Click board from MikroElektronika using ESP32’s I²C interface.
 
-Key Features
-Initialize and configure up to two independent stepper motor channels
+***
 
-Set microstepping resolution, direction, and step angle for each motor
+## Key Features
 
-Control speed (steps per second) and acceleration
+- **Dual-channel support**: Control two independent stepper motors  
+- **Microstepping & direction**: Configure resolution, direction, and step angle  
+- **Speed & acceleration**: Precise control over motion parameters  
+- **Motion modes**: Discrete steps or continuous rotation  
+- **Power management**: Enable/disable drivers to save power  
+- **Diagnostics**: Monitor step counter and fault status  
 
-Perform precise step moves or continuous rotations
+***
 
-Enable or disable motor drivers to conserve power
+## Table of Contents
 
-Query current step counter and driver fault status
+1. [Hardware Requirements](#hardware-requirements)  
+2. [Wiring Diagram](#wiring-diagram)  
+3. [Installation](#installation)  
+4. [Usage](#usage)  
+   1. [Include Library](#include-library)  
+   2. [Initialize Driver](#initialize-driver)  
+   3. [Configure Motor Parameters](#configure-motor-parameters)  
+   4. [Move Motor](#move-motor)  
+   5. [Continuous Rotation](#continuous-rotation)  
+   6. [Stop and Disable](#stop-and-disable)  
+   7. [Status and Diagnostics](#status-and-diagnostics)  
+5. [API Reference](#api-reference)  
+6. [License](#license)  
 
-Table of Contents
-Hardware Requirements
+***
 
-Wiring Diagram
+## Hardware Requirements
 
-Installation
+- ESP32 development board (NodeMCU-32S, WROOM, etc.)  
+- MikroElektronika Multi Stepper Click (TB62269) board  
+- Two bipolar stepper motors  
+- I²C pull-up resistors (4.7 kΩ) if not present on the boards  
 
-Usage
+***
 
-Include Library
+## Wiring Diagram
 
-Initialize Driver
+| Multi Stepper Click Pin | ESP32 Pin           |
+|-------------------------|---------------------|
+| **SCL**                 | GPIO 22 (I²C SCL)   |
+| **SDA**                 | GPIO 21 (I²C SDA)   |
+| **RST**                 | Not used (optional) |
+| **EN**                  | Not used (I²C)      |
+| **VIN**                 | 3.3 V or 5 V        |
+| **GND**                 | GND                 |
 
-Configure Motor Parameters
+> Ensure a common ground between ESP32 and the click board.
 
-Move Motor
+***
 
-Continuous Rotation
+## Installation
 
-Stop and Disable
+```bash
+cd ~/Arduino/libraries
+git clone https://github.com/EvilChangIndia/MultiStepperClickEsp32-driver-library.git
+```
 
-Status and Diagnostics
+1. Restart the Arduino IDE.  
+2. In your sketch: **Sketch → Include Library → MultiStepperClickEsp32**.  
 
-API Reference
+***
 
-License
+## Usage
 
-Hardware Requirements
-ESP32 development board (NodeMCU-32S, WROOM, etc.)
+### Include Library
 
-MikroElektronika Multi Stepper Click (TB62269) board
+```cpp
+#include 
+#include 
+```
 
-Two bipolar stepper motors
+### Initialize Driver
 
-I²C pull-up resistors (4.7 kΩ) if not already present on your click board or ESP32 dev board
-
-Wiring Diagram
-Multi Stepper Click Pin	ESP32 Pin
-SCL	GPIO 22 (I2C SCL)
-SDA	GPIO 21 (I2C SDA)
-RST	Not used (optional reset)
-EN	Not used (enabled via I²C)
-VIN	3.3 V
-GND	GND
-Ensure common ground between ESP32 and click board. Use 5 V motor supply on VIN if your board supports it, and adjust logic voltage selector accordingly.
-
-Installation
-Download or clone this repository into your Arduino libraries folder:
-~/Arduino/libraries/MultiStepperClickEsp32-driver-library
-
-Restart the Arduino IDE.
-
-In your sketch, select Sketch → Include Library → MultiStepperClickEsp32.
-
-Usage
-Include Library
-cpp
-#include <Wire.h>
-#include <MultiStepperClickEsp32.h>
-Initialize Driver
-cpp
-// Create instance on I2C bus Wire, address 0x60 (default)
+```cpp
 MultiStepperClickEsp32 stepper(&Wire, 0x60);
 
 void setup() {
-  Wire.begin(21, 22);           // SDA, SCL pins
-  stepper.begin();              // Initialize driver
+  Wire.begin(21, 22);
+  if (!stepper.begin()) {
+    Serial.println("Stepper driver not found");
+    while (1);
+  }
 }
-Configure Motor Parameters
-cpp
+```
+
+### Configure Motor Parameters
+
+```cpp
 // channel: 0 or 1
-// stepAngle: in thousandths of a degree (e.g., 176 for 1.8° step)
+// stepAngle: thousandths of a degree (e.g., 1800 for 1.8°)
 // microstep: 1, 2, 4, 8, 16
-// dir: 0 = forward, 1 = reverse
-stepper.setStepperParams(0, 176, 16, 0);
-stepper.setStepperParams(1, 176, 16, 1);
-Move Motor
-cpp
-// channel, targetSteps, speed in steps/sec, acceleration in steps/sec²
+// direction: 0 = forward, 1 = reverse
+stepper.setStepperParams(0, 1800, 16, 0);
+stepper.setStepperParams(1, 1800, 16, 1);
+```
+
+### Move Motor
+
+```cpp
+// channel, targetSteps, speed (steps/sec), acceleration (steps/sec²)
 stepper.moveSteps(0, 200, 400, 800);
-Continuous Rotation
-cpp
-// channel, speed (positive = forward, negative = reverse)
+```
+
+### Continuous Rotation
+
+```cpp
+// channel, speed (signed steps/sec)
 stepper.moveContinuous(1, -300);
-Stop and Disable
-cpp
-stepper.stop(0);         // Gracefully decelerate and stop
-stepper.disable(1);      // Immediately disable driver (coast)
-Status and Diagnostics
-cpp
-long current = stepper.getCurrentSteps(0);     // Retrieve internal step count
-bool fault   = stepper.getFaultStatus(0);      // true if driver fault present
-stepper.resetSteps(0);                         // Zero internal counter
-API Reference
-Constructor
-MultiStepperClickEsp32(TwoWire* i2cBus, uint8_t address = 0x60)
+```
 
-i2cBus: Pointer to Wire or custom I²C.
+### Stop and Disable
 
-address: 7-bit I²C address (default 0x60).
+```cpp
+stepper.stop(0);     // Soft stop
+stepper.disable(1);  // Driver coast
+```
 
-begin()
-cpp
-bool begin();
-Initializes I²C and verifies device presence.
+### Status and Diagnostics
 
-Returns true on success.
+```cpp
+long current = stepper.getCurrentSteps(0);
+bool fault   = stepper.getFaultStatus(0);
+stepper.resetSteps(0);
+```
 
-setStepperParams()
-cpp
-void setStepperParams(uint8_t channel,
-                      uint16_t stepAngle,
-                      uint8_t microstep,
-                      uint8_t direction);
-channel: 0 or 1.
+***
 
-stepAngle: Motor step angle × 1000 (e.g., 1.8° → 1800).
+## API Reference
 
-microstep: 1, 2, 4, 8, or 16.
+- **Constructor**  
+  `MultiStepperClickEsp32(TwoWire* i2cBus, uint8_t address = 0x60)`
 
-direction: 0 = forward, 1 = reverse.
+- **begin()**  
+  `bool begin();`
 
-enable()/disable()
-cpp
-void enable(uint8_t channel);
-void disable(uint8_t channel);
-enable: Powers motor driver.
+- **setStepperParams()**  
+  `void setStepperParams(uint8_t channel, uint16_t stepAngle, uint8_t microstep, uint8_t direction);`
 
-disable: Coasts motor (no torque).
+- **enable()/disable()**  
+  `void enable(uint8_t channel);`  
+  `void disable(uint8_t channel);`
 
-moveSteps()
-cpp
-bool moveSteps(uint8_t channel,
-               long targetSteps,
-               uint16_t speed,
-               uint16_t acceleration);
-targetSteps: Desired absolute or relative steps (signed).
+- **moveSteps()**  
+  `bool moveSteps(uint8_t channel, long targetSteps, uint16_t speed, uint16_t acceleration);`
 
-speed: Max speed in steps/sec.
+- **moveContinuous()**  
+  `bool moveContinuous(uint8_t channel, int16_t speed);`
 
-acceleration: Acceleration in steps/sec².
+- **stop()**  
+  `void stop(uint8_t channel);`
 
-Returns true on command acceptance.
+- **getCurrentSteps()**  
+  `long getCurrentSteps(uint8_t channel);`
 
-moveContinuous()
-cpp
-bool moveContinuous(uint8_t channel, int16_t speed);
-speed: Steps/sec (signed).
+- **getFaultStatus()**  
+  `bool getFaultStatus(uint8_t channel);`
 
-Returns true on acceptance.
+- **resetSteps()**  
+  `void resetSteps(uint8_t channel);`
 
-stop()
-cpp
-void stop(uint8_t channel);
-Soft deceleration to immediate stop.
+***
 
-getCurrentSteps()
-cpp
-long getCurrentSteps(uint8_t channel);
-Returns current internal counter.
+## License
 
-getFaultStatus()
-cpp
-bool getFaultStatus(uint8_t channel);
-Returns true if overcurrent, thermal shutdown, or undervoltage.
-
-resetSteps()
-cpp
-void resetSteps(uint8_t channel);
-Clears internal step counter to zero.
-
-License
-This project is released under the MIT License.
-See LICENSE for details.
+Released under the **MIT License**. See [LICENSE](LICENSE) for details.

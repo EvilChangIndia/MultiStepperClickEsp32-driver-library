@@ -1,4 +1,4 @@
-// StepperMotor.cpp - a custom stepper library by Kiran Sreekumar
+// StepperMotor.cpp - a custom multi stepper click library for esp32 by Kiran Sreekumar
 
 #include "StepperMotor.h"
 
